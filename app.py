@@ -17,9 +17,10 @@ MODEL_FILES = {
     "Support Vector Machine": "support_vector_machine",
 }
 
-st.set_page_config(page_title="Breast Cancer Classifier Comparison", layout="wide")
-st.title("Breast Cancer Diagnosis: Model Comparison")
-st.caption("Evaluate five pre-trained classifiers on a test CSV. No retraining happens here.")
+st.set_page_config(page_title="Student Performance Predictor", layout="wide")
+st.title("Student Performance Level: Model Comparison")
+st.caption("Predicts Low / Medium / High exam performance from daily habits. "
+           "Models are pre-trained; nothing is retrained here.")
 
 
 @st.cache_resource
@@ -34,107 +35,103 @@ def load_meta():
 
 
 meta = load_meta()
-target = meta["target"]
-class_names = meta["class_names"]
+target, levels = meta["target"], meta["levels"]
+level_to_id = {lvl: i for i, lvl in enumerate(levels)}
+labels = list(range(len(levels)))
 
-# ---------------- sidebar ----------------
 with st.sidebar:
     st.header("Controls")
     uploaded = st.file_uploader("Upload test CSV (features + target)", type="csv")
     choice = st.selectbox("Select model", list(MODEL_FILES))
-    st.caption(f"Target column: **{target}** (0 = {class_names[0]}, 1 = {class_names[1]})")
+    st.caption(f"Target column: **{target}** with values {', '.join(levels)}")
 
-# ---------------- data ----------------
-if uploaded is None:
-    df = pd.read_csv("test_data.csv")
-    st.info("No file uploaded, using the default test_data.csv from the repository.")
-else:
-    df = pd.read_csv(uploaded)
+tab_eval, tab_single = st.tabs(["Evaluate on test data", "Try a single student"])
 
-if target not in df.columns:
-    st.error(f"Target column '{target}' not found in the uploaded file.")
-    st.stop()
+# ======================= TAB 1: evaluation =======================
+with tab_eval:
+    if uploaded is None:
+        df = pd.read_csv("test_data.csv")
+        st.info("No file uploaded, using the default test_data.csv from the repository.")
+    else:
+        df = pd.read_csv(uploaded)
 
-try:
-    y_true = df[target].astype(int).to_numpy()
-except (ValueError, TypeError):
-    st.error("Target column must contain 0/1 values.")
-    st.stop()
-
-if not set(np.unique(y_true)) <= set(meta["classes"]):
-    st.error(f"Target values must be in {meta['classes']}.")
-    st.stop()
-
-st.subheader(f"Data: {df.shape[0]} rows x {df.shape[1]} columns")
-st.dataframe(df.head())
-
-
-def run_model(name):
-    """Return (pipeline, predictions, probabilities) using the model's own feature names."""
-    pipe = load_model(name)
-    cols = list(pipe.feature_names_in_)
-    absent = [c for c in cols if c not in df.columns]
-    if absent:
-        st.error(f"Uploaded file is missing columns the model needs: {absent}")
+    if target not in df.columns:
+        st.error(f"Target column '{target}' not found.")
         st.stop()
-    X = df[cols]
-    return pipe, pipe.predict(X), pipe.predict_proba(X)
+    bad = set(df[target].astype(str)) - set(levels)
+    if bad:
+        st.error(f"Unknown target labels: {bad}. Expected {levels}.")
+        st.stop()
+    y_true = df[target].astype(str).map(level_to_id).to_numpy()
 
+    st.subheader(f"Data: {df.shape[0]} rows x {df.shape[1]} columns")
+    st.dataframe(df.head())
 
-pipe, y_pred, y_prob = run_model(choice)
-scores = compute_metrics(y_true, y_pred, y_prob)
+    def run_model(name):
+        pipe = load_model(name)
+        cols = list(pipe.feature_names_in_)
+        absent = [c for c in cols if c not in df.columns]
+        if absent:
+            st.error(f"Uploaded file is missing columns: {absent}")
+            st.stop()
+        X = df[cols]
+        return pipe.predict(X), pipe.predict_proba(X)
 
-# ---------------- metrics ----------------
-st.subheader(f"Evaluation metrics: {choice}")
-for col, (name, val) in zip(st.columns(len(scores)), scores.items()):
-    col.metric(name, f"{val:.4f}")
+    y_pred, y_prob = run_model(choice)
+    scores = compute_metrics(y_true, y_pred, y_prob, labels)
 
-# ---------------- confusion matrix + report ----------------
-left, right = st.columns(2)
-with left:
-    st.markdown("**Confusion matrix**")
-    fig, ax = plt.subplots(figsize=(4.5, 3.8))
-    sns.heatmap(confusion_matrix(y_true, y_pred, labels=meta["classes"]),
-                annot=True, fmt="d", cmap="Purples",
-                xticklabels=class_names, yticklabels=class_names, ax=ax)
-    ax.set_xlabel("Predicted")
-    ax.set_ylabel("Actual")
-    st.pyplot(fig)
-with right:
-    st.markdown("**Classification report**")
-    report = classification_report(y_true, y_pred, labels=meta["classes"],
-                                   target_names=class_names, output_dict=True,
-                                   zero_division=0)
-    st.dataframe(pd.DataFrame(report).T.round(3))
+    st.subheader(f"Evaluation metrics: {choice}")
+    st.caption("Precision, Recall and F1 are macro-averaged; AUC is one-vs-rest macro.")
+    for col, (k, v) in zip(st.columns(len(scores)), scores.items()):
+        col.metric(k, f"{v:.4f}")
 
-# ---------------- extra: probability distribution ----------------
-st.subheader("Predicted probability of Benign")
-fig2, ax2 = plt.subplots(figsize=(7, 3))
-for cls, label in zip(meta["classes"], class_names):
-    ax2.hist(y_prob[y_true == cls, 1], bins=15, alpha=0.6, label=f"Actual {label}")
-ax2.set_xlabel("P(Benign)")
-ax2.set_ylabel("Count")
-ax2.legend()
-st.pyplot(fig2)
+    left, right = st.columns(2)
+    with left:
+        st.markdown("**Confusion matrix**")
+        fig, ax = plt.subplots(figsize=(4.5, 3.8))
+        sns.heatmap(confusion_matrix(y_true, y_pred, labels=labels), annot=True,
+                    fmt="d", cmap="YlGnBu", xticklabels=levels,
+                    yticklabels=levels, ax=ax)
+        ax.set_xlabel("Predicted")
+        ax.set_ylabel("Actual")
+        st.pyplot(fig)
+    with right:
+        st.markdown("**Classification report**")
+        rep = classification_report(y_true, y_pred, labels=labels, target_names=levels,
+                                    output_dict=True, zero_division=0)
+        st.dataframe(pd.DataFrame(rep).T.round(3))
 
-# ---------------- extra: per-row predictions ----------------
-pred_table = pd.DataFrame({
-    "Actual": [class_names[i] for i in y_true],
-    "Predicted": [class_names[i] for i in y_pred],
-    "P(Benign)": y_prob[:, 1].round(4),
-})
-pred_table["Correct"] = pred_table["Actual"] == pred_table["Predicted"]
-with st.expander("Row-level predictions"):
-    st.dataframe(pred_table)
-    st.download_button("Download predictions (CSV)",
-                       pred_table.to_csv(index=False).encode(),
-                       file_name=f"predictions_{MODEL_FILES[choice]}.csv")
+    st.subheader("Average predicted probability per actual level")
+    avg = pd.DataFrame(y_prob, columns=levels).groupby(
+        pd.Series(y_true).map(dict(enumerate(levels))).values).mean().reindex(levels)
+    st.bar_chart(avg)
 
-# ---------------- all models ----------------
-st.subheader("All models on this data")
-rows = []
-for m in MODEL_FILES:
-    _, p, pr = run_model(m)
-    rows.append({"ML Model Name": m, **compute_metrics(y_true, p, pr)})
-table = pd.DataFrame(rows).set_index("ML Model Name")
-st.dataframe(table.style.format("{:.4f}").highlight_max(axis=0, color="#d8c8f0"))
+    st.subheader("All models on this data")
+    table = pd.DataFrame([
+        {"ML Model Name": m, **compute_metrics(y_true, *run_model(m), labels)}
+        for m in MODEL_FILES]).set_index("ML Model Name")
+    st.dataframe(table.style.format("{:.4f}").highlight_max(axis=0, color="#cfe8e0"))
+
+# ======================= TAB 2: single student =======================
+with tab_single:
+    st.write(f"Enter a student's habits and see what **{choice}** predicts.")
+    pipe = load_model(choice)
+    values = {}
+    cols = st.columns(3)
+    for i, feat in enumerate(pipe.feature_names_in_):
+        box = cols[i % 3]
+        if feat in meta["numeric"]:
+            info = meta["numeric"][feat]
+            if info["is_int"]:
+                values[feat] = box.number_input(feat, int(info["min"]), int(info["max"]),
+                                                int(round(info["median"])), step=1)
+            else:
+                values[feat] = box.number_input(feat, float(info["min"]),
+                                                float(info["max"]), float(info["median"]))
+        else:
+            values[feat] = box.selectbox(feat, meta["categorical"][feat])
+    if st.button("Predict performance level"):
+        row = pd.DataFrame([values])[list(pipe.feature_names_in_)]
+        proba = pipe.predict_proba(row)[0]
+        st.success(f"Predicted level: **{levels[int(np.argmax(proba))]}**")
+        st.bar_chart(pd.Series(proba, index=levels, name="Probability"))
