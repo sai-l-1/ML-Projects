@@ -1,0 +1,104 @@
+{
+    "target": "performance_level",
+    "levels": [
+        "Low",
+        "Medium",
+        "High"
+    ],
+    "features": [
+        "age",
+        "gender",
+        "study_hours_per_day",
+        "social_media_hours",
+        "netflix_hours",
+        "part_time_job",
+        "attendance_percentage",
+        "sleep_hours",
+        "diet_quality",
+        "exercise_frequency",
+        "parental_education_level",
+        "internet_quality",
+        "mental_health_rating",
+        "extracurricular_participation"
+    ],
+    "numeric": {
+        "age": {
+            "min": 17.0,
+            "max": 24.0,
+            "median": 20.0,
+            "is_int": true
+        },
+        "study_hours_per_day": {
+            "min": 0.0,
+            "max": 8.3,
+            "median": 3.5,
+            "is_int": false
+        },
+        "social_media_hours": {
+            "min": 0.0,
+            "max": 7.2,
+            "median": 2.5,
+            "is_int": false
+        },
+        "netflix_hours": {
+            "min": 0.0,
+            "max": 5.4,
+            "median": 1.8,
+            "is_int": false
+        },
+        "attendance_percentage": {
+            "min": 56.0,
+            "max": 100.0,
+            "median": 84.4,
+            "is_int": false
+        },
+        "sleep_hours": {
+            "min": 3.2,
+            "max": 10.0,
+            "median": 6.5,
+            "is_int": false
+        },
+        "exercise_frequency": {
+            "min": 0.0,
+            "max": 6.0,
+            "median": 3.0,
+            "is_int": true
+        },
+        "mental_health_rating": {
+            "min": 1.0,
+            "max": 10.0,
+            "median": 5.0,
+            "is_int": true
+        }
+    },
+    "categorical": {
+        "gender": [
+            "Female",
+            "Male",
+            "Other"
+        ],
+        "part_time_job": [
+            "No",
+            "Yes"
+        ],
+        "diet_quality": [
+            "Fair",
+            "Good",
+            "Poor"
+        ],
+        "parental_education_level": [
+            "Bachelor",
+            "High School",
+            "Master"
+        ],
+        "internet_quality": [
+            "Average",
+            "Good",
+            "Poor"
+        ],
+        "extracurricular_participation": [
+            "No",
+            "Yes"
+        ]
+    }
+}
