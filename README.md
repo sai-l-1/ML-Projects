@@ -2,7 +2,7 @@
 
 Machine Learning, Assignment 2 (M.Tech AIML, BITS Pilani WILP)
 
-- **Live Streamlit app:** https://ml-projects-jkkp3kh3jdtxnxqqpdysuu.streamlit.app/
+- **Live Streamlit app:** https://ml-projects-cvxrjmaaaufgzfoqyvsjvm.streamlit.app/
 - **GitHub repository:** https://github.com/sai-l-1/ML-Projects/tree/ML-Assignment2
 
 ---
@@ -82,9 +82,23 @@ streamlit run app.py
 
 ## Streamlit app features
 
-- CSV upload of test data (must contain the 14 feature columns and `performance_level` with values Low, Medium or High); falls back to `test_data.csv` if nothing is uploaded
-- Model selection dropdown
-- Evaluation metrics (Accuracy, AUC, Precision, Recall, F1, MCC)
+The app loads the five saved pipelines from `model/` and never retrains. Results are shown only after a test CSV is uploaded.
+
+**Landing page (before upload)**
+- Overview of the five models used (Logistic Regression, Decision Tree, KNN, Naive Bayes, SVM) with a one-line description of each
+- The three prediction classes (Low, Medium, High) and the exam-score rule behind each
+- Preview of the outputs that appear after upload
+- Table of the required test-data fields: all 14 feature columns with type and allowed range or values, plus the `performance_level` target
+- Downloads for a sample test CSV (`test_data.csv`) and an empty CSV template with the required headers
+
+**After uploading a test CSV**
+- CSV upload (test data only); the file must contain the 14 feature columns and `performance_level` with values Low, Medium or High. The app reports exactly which columns are missing or which target values are invalid. Extra columns are ignored, and blanks in feature columns are imputed by the models.
+- Model selection dropdown in the sidebar
+- Evaluation metrics for the selected model (Accuracy, AUC, Precision, Recall, F1, MCC)
 - Confusion matrix and classification report
-- Comparison table of all five models on the uploaded data
-- "Try a single student" tab for a one-off prediction
+- Chart of the average predicted probability per actual class
+- Comparison table of all five models on the uploaded data, with the best value per metric highlighted, a "best model by MCC" banner and a CSV download
+- Row-level predictions (actual, predicted, confidence) with a CSV download
+
+**Extra**
+- "Try a single student" tab: enter one student's habits and see the predicted level with class probabilities
