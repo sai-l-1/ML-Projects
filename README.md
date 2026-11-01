@@ -15,7 +15,7 @@ This is a **multi-class** classification problem.
 
 ## b. Dataset description
 
-- **Source:** Student Habits vs Academic Performance dataset (Kaggle): https://github.com/tfxhk/Regression-dataset/blob/main/student_habits_performance.csv
+- **Source:** Student Habits vs Academic Performance dataset (Github): https://github.com/tfxhk/Regression-dataset/blob/main/student_habits_performance.csv
 - **Instances:** 1000 students
 - **Raw columns:** 16 (including the identifier and the original score)
 - **Features used:** 14 
